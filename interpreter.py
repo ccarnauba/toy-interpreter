@@ -36,24 +36,37 @@ def parse (program : str):
     ['define', 'r', '10']
     """
     def rec_parse(local_tree, tokenized_program : list[str]):
-        if tokenized_program == []:
-            return local_tree
-
-        token = tokenized_program.pop(0)
-
-        while token:
+        for token in tokenized_program:
+            # If we're entering a new function, we create a new tree.
             if token == '(':
                 program_after_paren = rec_parse([], tokenized_program)
+                # Append the new function to our tree
                 local_tree.append(program_after_paren)
+
+            # If we reach the end of the program, we're done with this tree
             elif token == ')':
                 return local_tree
             else:
                 local_tree.append(token)
 
-            if tokenized_program:
-                token = tokenized_program.pop(0)
-            else:
-                token = None
+        # while token:
+        #     # If we're entering a new function, we create a new tree.
+        #     if token == '(':
+        #         program_after_paren = rec_parse([], tokenized_program)
+        #         # Append the new function to our tree
+        #         local_tree.append(program_after_paren)
+
+        #     # If we reach the end of the program, we're done with this tree
+        #     elif token == ')':
+        #         return local_tree
+        #     else:
+        #         local_tree.append(token)
+
+        #     if tokenized_program:
+        #         token = tokenized_program.pop(0)
+
+        #     else:
+        #         token = None
 
         return local_tree
 
