@@ -2,8 +2,9 @@
 
 I wanted to learn more about programming languages, so I started working on a
 toy lisp interpreter. I sort of knew how to get to a working calculator, and
-could figure out roughly how to get to definitions and such, but it's otherwise
-pretty bare-bones, and currently supports:
+could figure out roughly how to get to definitions (though lambda expressions
+were tricky), but it's otherwise pretty
+bare-bones, and currently supports:
 
 - lambda functions
 - if-else statements
