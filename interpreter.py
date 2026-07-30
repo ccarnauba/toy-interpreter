@@ -17,7 +17,7 @@ def tokenize (program : str) -> list[str]:
     sanitized_program = program.replace('(', ' ( ').replace(')', ' ) ')
 
     # Splitting on spaces doesn't make
-    return [char for char in sanitized_program.split(' ') if char]
+    return [char for char in sanitized_program.split() if char]
 
 def token_to_number_or_string (token):
     try:
@@ -48,6 +48,8 @@ def parse (program : str):
     [['define', 'r', 10]]
     >>> parse ("(define r 10) (define d 20)")
     [['define', 'r', 10], ['define', 'd', 20]]
+    >>> parse ("((lambda (x) (+ x x)) 5)")
+    [[['lambda', ['x'], ['+', 'x', 'x']], 5]]
     """
     def rec_parse(local_tree: list, tokenized_program : list[str]):
         # todo think of a way to handle degenerate programs:
@@ -74,37 +76,72 @@ def parse (program : str):
     return rec_parse([], tokenize(program))
 
 class Env():
-    def __init__(self, parent=None):
+    def __init__(self, initial_env=None, parent=None):
         self.parent = parent
-        self.env = {}
+        self.bindings = initial_env if initial_env else {}
 
-        def find(self, var):
-            if var in self.env:
-                return self.env[var]
-            elif var in self.parent:
-                return self.parent[var]
-            else:
-                raise ValueError
+    def find(self, var):
+        """Inner environments shadow outer envs. As such, we return the
+        value assigned in the inner most env
+         """
+        if var in self.bindings:
+            return self.bindings[var]
+        elif self.parent:
+            return self.parent.find(var)
+        else:
+            error = NameError([var, self.bindings])
+            raise error
 
+    def define(self, name, value):
+        self.bindings[name] = value
+
+class Procedure():
+    def __init__(self, params, body, parent_env):
+        '''
+        A function has parameters, the body of the function itself, and a
+        parent env. We have to store the parent env, since the body of the function
+        creates a different scope, and we don't want to clobber the parent scope.
+        '''
+        self.params = params
+        self.body = body
+        self.parent_env = parent_env
+
+    def __call__(self, *args):
+        """
+        To run a procedure, we need the arguments -- which we'll compare
+        against the params of the function. If the lengths are different,
+        return an error, otherwise, create a new Env with the args assigned to
+        the params, and evaluate the body of the function with that env.
+        """
+        assert len(args) == len(self.params)
+        initial_env = dict(zip(self.params, args))
+        function_scope = Env(initial_env, parent = self.parent_env)
+        return my_eval_exp(self.body, function_scope)
 
 def create_starter_env():
-    env = Env()
-    env.env.update({'+': operator.add, '-': operator.sub})
+    # TODO: Add more to our starter env.
+    return \
+        Env(initial_env =
+            {'+': operator.add, '-': operator.sub, '*': operator.mul})
 
-global_env = create_starter_env
+global_env = create_starter_env()
 
 
-# TODO: Add let expressions.
-def my_eval(exp : list, env=global_env):
+def my_eval_exp(exp : list, env: Env = global_env):
     '''
     Now, given an expression from the ast of our program, evaluates the expression.
-    >>
-    >>> my_eval (parse("(define r 10)")[0])
-    >>> my_eval (parse("(* r r)")[0])
-    >>> my_eval (parse("(+ 2 3)")[0])
+    >>> my_eval_exp (parse("2")[0])
+    2
+    >>> my_eval_exp (parse("(define a 10)")[0])
+    >>> my_eval_exp (parse("(+ 2 3)")[0])
+    5
+    >>> my_eval_exp (parse ("((lambda (x) (+ x x)) 5)")[0])
+    10
+    >>> my_eval_exp(parse("(+ a a)")[0])
+    20
     '''
     if isinstance(exp, str):
-        return env.find(str)
+        return env.find(exp)
 
     elif isinstance(exp, (int, float)):
         return exp
@@ -115,17 +152,40 @@ def my_eval(exp : list, env=global_env):
 
     # If our expression is of type "define name <exp>"
     elif exp[0] == 'define':
-        env[exp[1]] = my_eval(exp[2], env)
+        env.define(exp[1], my_eval_exp(exp[2], env))
 
     # If our expression is of type if cond then consequent else alternate
     elif exp[0] == 'if':
-        if my_eval(exp[1], env):
-            return my_eval(exp[2], env)
+        if my_eval_exp(exp[1], env):
+            return my_eval_exp(exp[2], env)
         else:
-            return my_eval(exp[3], env)
+            return my_eval_exp(exp[3], env)
 
-    # If we have a lambda expression
+    # If we have (lambda (x) <exp>), we want to create a new procedure. Note
+    # that we have to write a separate construction to represent a lambda since
+    # these can be stored in a variable
     elif exp[0] == 'lambda':
-        return
+        params = exp[1]
+        body = exp[2]
+        return Procedure(params, body, env)
 
+    # If its none of our keywords, it must be a procedure application. We try
+    # to eval the procedure application. If it doesn't exist, raise, otherwise,
+    # we run it, with the evaluated results of the args
     else:
+        maybe_proc = my_eval_exp(exp[0], env)
+        args = [my_eval_exp(arg, env) for arg in exp[1:]]
+        return maybe_proc(*args)
+
+def my_eval (program : list, env = global_env):
+    '''
+    Runs my_eval_proc on every expression in our program.
+
+    >>> my_eval(parse("(define r 10)(* r r)"))
+    100
+    '''
+    last_result = None
+    for exp in program:
+        last_result = my_eval_exp(exp, env)
+
+    return last_result
