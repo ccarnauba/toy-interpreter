@@ -106,5 +106,6 @@ def my_eval(exp : list, env=global_env):
             return my_eval(exp[3], env)
 
     elif exp[0] == 'lambda':
-
+        return lambda x:
     else:
+        proc =
