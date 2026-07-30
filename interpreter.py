@@ -73,19 +73,38 @@ def parse (program : str):
 
     return rec_parse([], tokenize(program))
 
-# We have a global environment for our interpreter. We then later have to
-# create local enviroments and so on.
-global_env = {}
+class Env():
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.env = {}
 
+        def find(self, var):
+            if var in self.env:
+                return self.env[var]
+            elif var in self.parent:
+                return self.parent[var]
+            else:
+                raise ValueError
+
+
+def create_starter_env():
+    env = Env()
+    env.env.update({'+': operator.add, '-': operator.sub})
+
+global_env = create_starter_env
+
+
+# TODO: Add let expressions.
 def my_eval(exp : list, env=global_env):
     '''
     Now, given an expression from the ast of our program, evaluates the expression.
     >>
-    >>> my_eval (['+', 2, 3])
-    5
+    >>> my_eval (parse("(define r 10)")[0])
+    >>> my_eval (parse("(* r r)")[0])
+    >>> my_eval (parse("(+ 2 3)")[0])
     '''
     if isinstance(exp, str):
-        return global_env[str]
+        return env.find(str)
 
     elif isinstance(exp, (int, float)):
         return exp
@@ -105,7 +124,8 @@ def my_eval(exp : list, env=global_env):
         else:
             return my_eval(exp[3], env)
 
+    # If we have a lambda expression
     elif exp[0] == 'lambda':
-        return lambda x:
+        return
+
     else:
-        proc =
