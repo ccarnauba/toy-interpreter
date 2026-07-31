@@ -8,7 +8,7 @@ currently supports:
 - lambda functions
 - if-else statements
 - variable definitions
-- basic arithmetic operation
+- basic arithmetic operations
 - begin
 - quote
 
@@ -16,7 +16,7 @@ Notably, we're missing:
 - lists
 - any kind of garbage collection
 - user-friendly error messages
-- no tail calls
+- tail calls
 
 One fun thing about lisp in python I realized is that we can define most
 functions outside of our "eval" function, and we can extend our global scope

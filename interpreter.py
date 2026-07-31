@@ -83,7 +83,7 @@ class Env():
         elif self.parent:
             return self.parent.find(var)
         else:
-            error = NameError([var, self.bindings])
+            error = NameError(f"unbound variable: {var}")
             raise error
 
     def define(self, name, value):
